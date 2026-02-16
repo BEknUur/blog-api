@@ -1,6 +1,7 @@
 # Project modules
 import os
 from settings.conf import * 
+from datetime import timedelta 
 
 
 """
@@ -8,6 +9,8 @@ Path configurations
 """
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOGS_DIR, exist_ok=True)
 ROOT_URLCONF = "settings.urls"
 WSGI_APPLICATION = "settings.wsgi.application"
 ASGI_APPLICTION = "settings.asgi.application"
@@ -25,7 +28,11 @@ DJANGO_AND_THIRD_PARTY_APPS = [
     "django.contrib.staticfiles",
 ]
 
-PROJECT_APPS = []
+PROJECT_APPS = [
+    "apps.abstract",
+    "apps.users",
+    "apps.blog",
+]
 
 INSTALLED_APPS = DJANGO_AND_THIRD_PARTY_APPS + PROJECT_APPS
 
@@ -42,6 +49,73 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "[{levelname}] {message}",
+            "style": "{",
+        },
+        "verbose": {
+            "format": "[{asctime}] {levelname} "
+            "{name} {module}.{funcName}: {lineno} - {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "simple",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "WARNING",
+            "filename": "logs/app.log",
+            "maxBytes": 5 * 1024 * 1024,  # 10 MB
+            "backupCount": 3,
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        "debug_only": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "filename": "logs/debug_requests.log",
+            "maxBytes": 5 * 1024 * 1024,  # 10 MB
+            "backupCount": 3,
+            "formatter": "verbose",
+            "filters": ["require_debug_true"],
+            "encoding": "utf-8",
+        },
+    },
+    "loggers": {
+        "apps.users": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "apps.blog": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["file", "debug_only"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+   
+}
 
 TEMPLATES = [
     {
