@@ -9,6 +9,7 @@ from django.db.models import(
     CASCADE,
     SET_NULL,
 )
+from django.utils.text import slugify
 
 #PROJECT imports 
 from apps.abstract.models import AbstractTimeStampModel
@@ -90,6 +91,19 @@ class Post(AbstractTimeStampModel):
         default=Status.DRAFT,
     )
 
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)
+            slug = base_slug
+            counter = 1
+            while Post.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
 
 class Comment(AbstractTimeStampModel):
