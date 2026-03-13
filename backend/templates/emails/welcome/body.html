@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+{% if lang == "ru" %}
+<h1>Добро пожаловать, {{ first_name }}!</h1>
+<p>Спасибо за регистрацию в Blog API.</p>
+{% elif lang == "kk" %}
+<h1>Қош келдіңіз, {{ first_name }}!</h1>
+<p>Blog API-ге тіркелгеніңіз үшін рахмет.</p>
+{% else %}
+<h1>Welcome, {{ first_name }}!</h1>
+<p>Thank you for registering in Blog API.</p>
+{% endif %}
+</body>
+</html>

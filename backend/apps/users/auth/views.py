@@ -11,6 +11,9 @@ from rest_framework.request import Request as DRFRequest
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST
 from rest_framework.decorators import action
 from django.utils.translation import gettext_lazy as _
+from django.utils import translation
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -88,7 +91,26 @@ class AuthViewSet(ViewSet):
 
         if serializer.is_valid():
             user = serializer.save()
-            logger.info(f"Registration successful: user_id={user.id}, email={email}")
+
+            user_lang = request.data.get("language", "en")
+            if user_lang not in ["en", "ru", "kk"]:
+                user_lang = "en"
+
+            with translation.override(user_lang):
+                body = render_to_string(
+                    "emails/welcome/body.html",
+                    {"first_name": user.first_name, "lang": user_lang},
+                )
+                send_mail(
+                    subject="Welcome to Blog API!",
+                    message="",
+                    from_email="noreply@blog.com",
+                    recipient_list=[user.email],
+                    html_message=body,
+                    fail_silently=True,
+                )
+
+            logger.info(f"Registration successful: user_id={user.id}, email={email}, lang={user_lang}")
             return DRFResponse(
                 data=serializer.data,
                 status=HTTP_201_CREATED,

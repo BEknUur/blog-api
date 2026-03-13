@@ -148,7 +148,7 @@ REST_FRAMEWORK = {
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -200,6 +200,8 @@ PARLER_LANGUAGES = {
     },
 }
 
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 """
 Internalizations

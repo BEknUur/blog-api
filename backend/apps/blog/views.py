@@ -99,7 +99,8 @@ class PostViewSet(ViewSet):
                 status=HTTP_200_OK,
             )
 
-        cache_key = "published_posts_list"
+        lang = getattr(request, "LANGUAGE_CODE", "en")
+        cache_key = f"published_posts_list_{lang}"
         cached_data = cache.get(cache_key)
 
         if cached_data is not None:
@@ -160,7 +161,9 @@ class PostViewSet(ViewSet):
         if serializer.is_valid():
             post = serializer.save(author=request.user)
 
-            cache.delete("published_posts_list")
+            from django.conf import settings as django_settings
+            for lang_code in django_settings.SUPPORTED_LANGUAGES:
+                cache.delete(f"published_posts_list_{lang_code}")
             logger.info("Invalidated published posts cache after post creation")
 
             logger.info(
@@ -239,7 +242,9 @@ class PostViewSet(ViewSet):
         if serializer.is_valid():
             serializer.save()
 
-            cache.delete("published_posts_list")
+            from django.conf import settings as django_settings
+            for lang_code in django_settings.SUPPORTED_LANGUAGES:
+                cache.delete(f"published_posts_list_{lang_code}")
             logger.info("Invalidated published posts cache after post update")
 
             logger.info(
@@ -288,6 +293,11 @@ class PostViewSet(ViewSet):
 
         post_id = post.id
         post.delete()
+
+        from django.conf import settings as django_settings
+        for lang_code in django_settings.SUPPORTED_LANGUAGES:
+            cache.delete(f"published_posts_list_{lang_code}")
+        logger.info("Invalidated published posts cache after post deletion")
 
         logger.info(
             f"Post deleted successfully: post_id={post_id}, "
