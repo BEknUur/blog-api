@@ -1,3 +1,10 @@
+#python-modules
+from typing import Any
+from django.contrib.auth.models import ( 
+    AbstractBaseUser, 
+    PermissionsMixin, 
+    BaseUserManager,
+)
 from django.db.models import (
     CharField,
     EmailField, 
@@ -5,14 +12,11 @@ from django.db.models import (
     DateTimeField,
     ImageField,
 )
-from django.contrib.auth.models import ( 
-    AbstractBaseUser, 
-    PermissionsMixin, 
-    BaseUserManager,
-)
+from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+# project imports
 from apps.abstract.models import AbstractTimeStampModel
 
-from typing import Any
 from apps.users.manager import CustomUserManager
 
 
@@ -28,19 +32,24 @@ class CustomUser(
 ):
     email=EmailField(
         unique=True,
+        verbose_name=_("emal"),
     )
     first_name=CharField(
         max_length=FIRST_NAME_MAX_LENGTH,
+        verbose_name=_("first name"),
     
     )
     last_name=CharField(
         max_length=LAST_NAME_MAX_LENGTH,
+        verbose_name=_("last name"),
     )
     is_active=BooleanField(
         default=True,
+        verbose_name=_("active"),
     )
     is_staff=BooleanField(
         default=False,
+        verbose_name =_("is staff"),
     )
     data_jonded=DateTimeField(
         auto_now_add=True,
@@ -49,6 +58,20 @@ class CustomUser(
         upload_to="avatars/",
         null=True,
         blank=True,
+        verbose_name =_("avatar"),
+    )
+    preffered_language= CharField(
+        max_length=10,
+        choices=settings.LANGUAGES,
+        default="en",
+        verbose_name=_("preffered language"),
+
+    )
+    timezone=CharField(
+        max_length=100,
+        default="UTC",
+        verbose_name=_("timezone"),
+        
     )
 
     USERNAME_FIELD = "email"
@@ -60,7 +83,7 @@ class CustomUser(
     objects = CustomUserManager()
 
     class Meta:
-        verbose_name="user"
+        verbose_name=_("user")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

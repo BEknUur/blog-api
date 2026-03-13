@@ -34,6 +34,7 @@ PROJECT_APPS = [
     "apps.abstract",
     "apps.users",
     "apps.blog",
+    "apps.core",
 ]
 
 INSTALLED_APPS = DJANGO_AND_THIRD_PARTY_APPS + PROJECT_APPS
@@ -95,7 +96,7 @@ LOGGING = {
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "WARNING",
-            "filename": "logs/app.log",
+            "filename": os.path.join(LOGS_DIR, "app.log"),
             "maxBytes": 5 * 1024 * 1024,  # 10 MB
             "backupCount": 3,
             "formatter": "verbose",
@@ -104,7 +105,7 @@ LOGGING = {
         "debug_only": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
-            "filename": "logs/debug_requests.log",
+            "filename": os.path.join(LOGS_DIR, "debug_requests.log"),
             "maxBytes": 5 * 1024 * 1024,  # 10 MB
             "backupCount": 3,
             "formatter": "verbose",
@@ -172,15 +173,29 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+"""
+Languages
+"""
+SUPPORTED_LANGUAGES = ["en","ru","kk"]
+LANGUAGES = [
+    ("en","English"),
+    ("ru","Русский"),
+    ("kk","Қазақша"),
+]
+
+
+
 
 
 """
 Internalizations
 """
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+LOCALE_PATHS = [os.path.join(BASE_DIR,"locale")]
 TIME_ZONE = "UTC"
 USE_I18N = True
+USE_L10N = True
 USE_TZ = True
 
 """
