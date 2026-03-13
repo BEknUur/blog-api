@@ -1,7 +1,8 @@
 # django modules
-from django.conf import settings 
-from django.utils import translation,timezone 
+from django.conf import settings
+from django.utils import translation,timezone
 import pytz
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class LanguageAndTimezoneMiddleware:
     """
@@ -20,7 +21,22 @@ class LanguageAndTimezoneMiddleware:
         self.get_response = get_response
     
 
+    def _authenticate_jwt(self, request):
+        """
+        DRF's JWTAuthentication only runs at the view level, not middleware.
+        We manually authenticate here so we can read user.preferred_language and user.timezone.
+        """
+        if request.user.is_authenticated:
+            return
+        try:
+            result = JWTAuthentication().authenticate(request)
+            if result:
+                request.user, _ = result
+        except Exception:
+            pass
+
     def __call__(self,request):
+        self._authenticate_jwt(request)
         lang = self._resolve_language(request)
         translation.activate(lang)
         request.LANGUAGE_CODE=lang 
@@ -38,7 +54,7 @@ class LanguageAndTimezoneMiddleware:
 
 
 
-    def _resolove_language(self,request):
+    def _resolve_language(self,request):
         supported = settings.SUPPORTED_LANGUAGES
         # first check the  user's saved language 
         

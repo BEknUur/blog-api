@@ -18,8 +18,8 @@ class CategoryAdmin(ModelAdmin):
         "deleted_at",
     )
 
-    search_fields = ("name",)
-    prepopulated_fields = {"slug": ("name",)}
+    search_fields = ("translations__name",)
+   # prepopulated_fields = {"slug": ("name",)}
     ordering = ("-created_at",)
 
 

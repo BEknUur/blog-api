@@ -90,10 +90,10 @@ class PostViewSet(ViewSet):
             page = paginator.paginate_queryset(queryset, request, view=self)
 
             if page is not None:
-                serializer: PostListSerializer = PostListSerializer(page, many=True)
+                serializer: PostListSerializer = PostListSerializer(page, many=True, context={'request': request})
                 return paginator.get_paginated_response(serializer.data)
 
-            serializer: PostListSerializer = PostListSerializer(queryset, many=True)
+            serializer: PostListSerializer = PostListSerializer(queryset, many=True, context={'request': request})
             return DRFResponse(
                 data=serializer.data,
                 status=HTTP_200_OK,
@@ -117,7 +117,7 @@ class PostViewSet(ViewSet):
         page = paginator.paginate_queryset(queryset, request, view=self)
 
         if page is not None:
-            serializer: PostListSerializer = PostListSerializer(page, many=True)
+            serializer: PostListSerializer = PostListSerializer(page, many=True, context={'request': request})
             response_data = paginator.get_paginated_response(serializer.data).data
             cache.set(cache_key, response_data, 60)
             logger.info("Cached posts list for 60 seconds")
@@ -126,7 +126,7 @@ class PostViewSet(ViewSet):
                 status=HTTP_200_OK,
             )
 
-        serializer: PostListSerializer = PostListSerializer(queryset, many=True)
+        serializer: PostListSerializer = PostListSerializer(queryset, many=True, context={'request': request})
         response_data = serializer.data
         cache.set(cache_key, response_data, 60)
         logger.info("Cached posts list for 60 seconds")
@@ -198,7 +198,7 @@ class PostViewSet(ViewSet):
             logger.warning(f"Post not found: slug={slug}")
             raise NotFound(detail="Post not found")
 
-        serializer: PostDetailSerializer = PostDetailSerializer(post)
+        serializer: PostDetailSerializer = PostDetailSerializer(post, context={'request': request})
         return DRFResponse(
             data=serializer.data,
             status=HTTP_200_OK,

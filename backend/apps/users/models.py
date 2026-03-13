@@ -60,12 +60,11 @@ class CustomUser(
         blank=True,
         verbose_name =_("avatar"),
     )
-    preffered_language= CharField(
+    preferred_language = CharField(
         max_length=10,
         choices=settings.LANGUAGES,
         default="en",
-        verbose_name=_("preffered language"),
-
+        verbose_name=_("preferred language"),
     )
     timezone=CharField(
         max_length=100,

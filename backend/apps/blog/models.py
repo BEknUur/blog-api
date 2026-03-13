@@ -10,6 +10,9 @@ from django.db.models import(
     SET_NULL,
 )
 from django.utils.text import slugify
+from django.utils.translation import gettext_lazy as _
+from parler.models import TranslatableModel, TranslatedFields
+
 
 #PROJECT imports 
 from apps.abstract.models import AbstractTimeStampModel
@@ -21,17 +24,25 @@ TAG_MAX_NAME_LENGTH = 50
 POST_TITLE_MAX_LENGTH = 200 
 
 
-class Category(AbstractTimeStampModel):
+class Category(TranslatableModel,AbstractTimeStampModel):
     """
-    Docstring for Category
+    Docstring for Category and for multilnangual fields
     """
-    name = CharField(
+    translations = TranslatedFields(
+        name = CharField(
         max_length=CATEGORY_MAX_NAME_LENGTH,
-        unique=True,
+        verbose_name =_("name"),
     )
+    )
+   
     slug = SlugField(
         unique=True,
     )
+    class Meta:
+        verbose_name = _("category")
+    
+    def __str__(self):
+        return self.safe_translation_getter("name", any_language=True) or ""
 
 
 class Tag(AbstractTimeStampModel):

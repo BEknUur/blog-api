@@ -158,8 +158,8 @@ class AuthViewSet(ViewSet):
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        request.user.preffered_language = lang 
-        request.user.save(update_fields=["preffered_language"])
+        request.user.preferred_language = lang
+        request.user.save(update_fields=["preferred_language"])
 
 
         logger.info(f"Langage updated:user_id={request.user.id},lang={lang}")

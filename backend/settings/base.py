@@ -28,6 +28,7 @@ DJANGO_AND_THIRD_PARTY_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
+    "parler",
 ]
 
 PROJECT_APPS = [
@@ -47,12 +48,13 @@ Middleware | Templates | Validators
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",  # ← сначала auth
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
+    "apps.core.middleware.LanguageAndTimezoneMiddleware",        # ← потом наш
 ]
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -183,8 +185,20 @@ LANGUAGES = [
     ("kk","Қазақша"),
 ]
 
-
-
+"""
+parler instructions
+"""
+PARLER_LANGUAGES = {
+    None: (
+        {"code": "en"},
+        {"code": "ru"},
+        {"code": "kk"},
+    ),
+    "default": {
+        "fallback": "en",
+        "hide_untranslated": False,
+    },
+}
 
 
 """
