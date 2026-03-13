@@ -1,14 +1,17 @@
 # Python modules
 from typing import Any
 import logging
+import pytz
 
 # Third-party modules
 from rest_framework.viewsets import ViewSet
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.response import Response as DRFResponse
 from rest_framework.request import Request as DRFRequest
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST
 from rest_framework.decorators import action
+from django.utils.translation import gettext_lazy as _
+
 
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -128,3 +131,80 @@ class AuthViewSet(ViewSet):
             data=serializer.errors,
             status=HTTP_400_BAD_REQUEST,
         )
+    
+
+
+    @action(
+        methods=("PATCH",),
+        detail=False,
+        url_path="language",
+        url_name="language",
+        permission_classes=(IsAuthenticated,),
+    )
+    def set_language(
+        self,
+        request:DRFRequest,
+        *args,
+        **kwargs,
+    )->DRFResponse:
+        """PATCH /api/auth/language -сохранить язык пользователя"""
+        from django.conf import settings 
+
+        lang = request.data.get("language")
+        
+        if lang not in settings.SUPPORTED_LANGUAGES:
+            return DRFResponse(
+                {"detail":_("Invalid language.Choose from:en,ru,kk")},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        request.user.preffered_language = lang 
+        request.user.save(update_fields=["preffered_language"])
+
+
+        logger.info(f"Langage updated:user_id={request.user.id},lang={lang}")
+        return DRFResponse(
+            {"detail":_("Language updated succesfully."),"language":lang},
+            status=HTTP_200_OK,
+        )
+    
+
+    @action(
+        methods =("PATCH",),
+        detail = False,
+        url_path ="timezone",
+        url_name ="timezone",
+        permission_classes=(IsAuthenticated,),
+    )
+    def set_timezone(
+        self,
+        request:DRFRequest,
+        *args,
+        **kwargs,
+    )->DRFResponse:
+        """PATCH /api/auth/timezone -сохранить часовой пояс пользователя"""
+        from django.conf import settings 
+
+        tz_name = request.data.get("timezone")
+        
+        if not tz_name:
+            return DRFResponse(
+                {"detail":_("Invalid timezone")},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        try:
+            pytz.timezone(tz_name)
+
+        except pytz.exceptions.UnknownTimeZoneError:
+            return DRFResponse(
+                {"detail":_("Invalid timezone")},
+                status=HTTP_400_BAD_REQUEST,
+            )
+        request.user.timezone = tz_name
+        request.user.save(update_fields=["timezone"])
+
+        logger.info(f"Timezone updated: user_id={request.user.id}, timezone={tz_name}")
+        return DRFResponse(
+        {"detail": _("Timezone updated successfully."), "timezone": tz_name},
+        status=HTTP_200_OK,
+    )
