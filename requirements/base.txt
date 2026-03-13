@@ -16,6 +16,7 @@ djangorestframework-simplejwt
 
 redis
 drf-spectacular 
-httpx 
+httpx
+adrf
 django-parler
 pytz

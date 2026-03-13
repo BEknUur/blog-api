@@ -18,15 +18,9 @@ redis_client = redis.Redis(
 def publish_comment_event(comment):
     try:
         event_data = {
-            "id": comment.id,
-            "post_id": comment.post.id,
-            "post_title": comment.post.title,
+            "post_slug": comment.post.slug,
             "author_id": comment.author.id,
-            "author_email": comment.author.email,
             "body": comment.body,
-            "created_at": comment.created_at.isoformat()
-            if comment.created_at
-            else None,
         }
 
         message = json.dumps(event_data)
