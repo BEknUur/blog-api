@@ -8,6 +8,7 @@ from adrf.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response as DRFResponse
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 
 # Project modules
 from apps.blog.models import Post, Comment
@@ -25,6 +26,26 @@ class StatsView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Blog statistics",
+        description="Returns blog stats combined with live exchange rates and current Almaty time. Two external API calls happen concurrently via asyncio.gather. No authentication required.",
+        tags=["Stats"],
+        responses={
+            200: OpenApiResponse(
+                description="Stats returned successfully",
+                examples=[
+                    OpenApiExample(
+                        "Stats response",
+                        value={
+                            "blog": {"total_posts": 42, "total_comments": 137, "total_users": 15},
+                            "exchange_rates": {"KZT": 490.20, "RUB": 79.34, "EUR": 0.86},
+                            "current_time": "2026-03-14T04:36:23",
+                        },
+                    ),
+                ],
+            ),
+        },
+    )
     async def get(self, request):
         # Async: два внешних запроса одновременно через asyncio.gather
         async with httpx.AsyncClient(timeout=10.0) as client:
