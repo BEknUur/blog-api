@@ -28,12 +28,16 @@ DJANGO_AND_THIRD_PARTY_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
+    "parler",
+    "adrf",
+    "drf_spectacular",
 ]
 
 PROJECT_APPS = [
     "apps.abstract",
     "apps.users",
     "apps.blog",
+    "apps.core",
 ]
 
 INSTALLED_APPS = DJANGO_AND_THIRD_PARTY_APPS + PROJECT_APPS
@@ -46,12 +50,13 @@ Middleware | Templates | Validators
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",  # ← сначала auth
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
+    "apps.core.middleware.LanguageAndTimezoneMiddleware",        # ← потом наш
 ]
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -95,7 +100,7 @@ LOGGING = {
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "WARNING",
-            "filename": "logs/app.log",
+            "filename": os.path.join(LOGS_DIR, "app.log"),
             "maxBytes": 5 * 1024 * 1024,  # 10 MB
             "backupCount": 3,
             "formatter": "verbose",
@@ -104,7 +109,7 @@ LOGGING = {
         "debug_only": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
-            "filename": "logs/debug_requests.log",
+            "filename": os.path.join(LOGS_DIR, "debug_requests.log"),
             "maxBytes": 5 * 1024 * 1024,  # 10 MB
             "backupCount": 3,
             "formatter": "verbose",
@@ -139,13 +144,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.CursorPagination",
     "PAGE_SIZE": 100,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -172,15 +178,43 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+"""
+Languages
+"""
+SUPPORTED_LANGUAGES = ["en","ru","kk"]
+LANGUAGES = [
+    ("en","English"),
+    ("ru","Русский"),
+    ("kk","Қазақша"),
+]
 
+"""
+parler instructions
+"""
+PARLER_LANGUAGES = {
+    None: (
+        {"code": "en"},
+        {"code": "ru"},
+        {"code": "kk"},
+    ),
+    "default": {
+        "fallback": "en",
+        "hide_untranslated": False,
+    },
+}
+
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 """
 Internalizations
 """
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "en"
+LOCALE_PATHS = [os.path.join(BASE_DIR,"locale")]
 TIME_ZONE = "UTC"
 USE_I18N = True
+USE_L10N = True
 USE_TZ = True
 
 """
@@ -193,3 +227,10 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Blog API",
+    "DESCRIPTION": "Blog API HW2 — Multilingual blog with async stats",
+    "VERSION": "2.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}

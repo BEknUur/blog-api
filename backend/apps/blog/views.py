@@ -16,6 +16,8 @@ from rest_framework.status import (
 )
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 # Django modules
 from django.db.models import Q
@@ -36,7 +38,7 @@ from apps.abstract.ratelimit import ratelimit
 logger = logging.getLogger(__name__)
 
 
-class PostViewSet(ViewSet):
+class PostViewSet(ViewSet):  # noqa
     """
     ViewSet for Post model:
     - GET /api/posts/ — List published posts (no auth required)
@@ -65,6 +67,25 @@ class PostViewSet(ViewSet):
             if not permission.has_object_permission(request, self, obj):
                 raise PermissionDenied()
 
+    @extend_schema(
+        summary="List posts",
+        description="Returns list of published posts. Authenticated users also see their own drafts. Response is cached per language. Cache invalidated on any post write.",
+        tags=["Posts"],
+        parameters=[
+            OpenApiParameter("lang", OpenApiTypes.STR, description="Language code: en, ru, kk"),
+        ],
+        responses={
+            200: PostListSerializer(many=True),
+            401: OpenApiResponse(description="Authentication required"),
+        },
+        examples=[
+            OpenApiExample(
+                "Posts list response",
+                value={"results": [{"id": 1, "title": "Test Post", "slug": "test-post", "status": "published", "created_at": "03:57 14 марта 2026"}]},
+                response_only=True,
+            ),
+        ],
+    )
     def list(
         self,
         request: DRFRequest,
@@ -90,16 +111,17 @@ class PostViewSet(ViewSet):
             page = paginator.paginate_queryset(queryset, request, view=self)
 
             if page is not None:
-                serializer: PostListSerializer = PostListSerializer(page, many=True)
+                serializer: PostListSerializer = PostListSerializer(page, many=True, context={'request': request})
                 return paginator.get_paginated_response(serializer.data)
 
-            serializer: PostListSerializer = PostListSerializer(queryset, many=True)
+            serializer: PostListSerializer = PostListSerializer(queryset, many=True, context={'request': request})
             return DRFResponse(
                 data=serializer.data,
                 status=HTTP_200_OK,
             )
 
-        cache_key = "published_posts_list"
+        lang = getattr(request, "LANGUAGE_CODE", "en")
+        cache_key = f"published_posts_list_{lang}"
         cached_data = cache.get(cache_key)
 
         if cached_data is not None:
@@ -117,7 +139,7 @@ class PostViewSet(ViewSet):
         page = paginator.paginate_queryset(queryset, request, view=self)
 
         if page is not None:
-            serializer: PostListSerializer = PostListSerializer(page, many=True)
+            serializer: PostListSerializer = PostListSerializer(page, many=True, context={'request': request})
             response_data = paginator.get_paginated_response(serializer.data).data
             cache.set(cache_key, response_data, 60)
             logger.info("Cached posts list for 60 seconds")
@@ -126,7 +148,7 @@ class PostViewSet(ViewSet):
                 status=HTTP_200_OK,
             )
 
-        serializer: PostListSerializer = PostListSerializer(queryset, many=True)
+        serializer: PostListSerializer = PostListSerializer(queryset, many=True, context={'request': request})
         response_data = serializer.data
         cache.set(cache_key, response_data, 60)
         logger.info("Cached posts list for 60 seconds")
@@ -135,6 +157,25 @@ class PostViewSet(ViewSet):
             status=HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Create post",
+        description="Create a new post. Authentication required. Invalidates posts cache for all languages.",
+        tags=["Posts"],
+        request=PostCreateUpdateSerializer,
+        responses={
+            201: PostCreateUpdateSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+            429: OpenApiResponse(description="Too many requests"),
+        },
+        examples=[
+            OpenApiExample(
+                "Create post example",
+                value={"title": "My Post", "body": "Post content here", "status": "published"},
+                request_only=True,
+            ),
+        ],
+    )
     @ratelimit(key_func=lambda r: str(r.user.id) if r.user.is_authenticated else "anonymous", rate="20/m", method="POST")
     def create(
         self,
@@ -160,7 +201,9 @@ class PostViewSet(ViewSet):
         if serializer.is_valid():
             post = serializer.save(author=request.user)
 
-            cache.delete("published_posts_list")
+            from django.conf import settings as django_settings
+            for lang_code in django_settings.SUPPORTED_LANGUAGES:
+                cache.delete(f"published_posts_list_{lang_code}")
             logger.info("Invalidated published posts cache after post creation")
 
             logger.info(
@@ -180,6 +223,22 @@ class PostViewSet(ViewSet):
             status=HTTP_400_BAD_REQUEST,
         )
 
+    @extend_schema(
+        summary="Get post",
+        description="Get single post by slug. No authentication required. Dates formatted per user locale and timezone.",
+        tags=["Posts"],
+        responses={
+            200: PostDetailSerializer,
+            404: OpenApiResponse(description="Post not found"),
+        },
+        examples=[
+            OpenApiExample(
+                "Post detail response",
+                value={"id": 1, "title": "Test Post", "slug": "test-post", "body": "Post content", "status": "published", "created_at": "03:57 14 марта 2026", "updated_at": "03:57 14 марта 2026"},
+                response_only=True,
+            ),
+        ],
+    )
     def retrieve(
         self,
         request: DRFRequest,
@@ -198,12 +257,25 @@ class PostViewSet(ViewSet):
             logger.warning(f"Post not found: slug={slug}")
             raise NotFound(detail="Post not found")
 
-        serializer: PostDetailSerializer = PostDetailSerializer(post)
+        serializer: PostDetailSerializer = PostDetailSerializer(post, context={'request': request})
         return DRFResponse(
             data=serializer.data,
             status=HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Update post",
+        description="Partially update a post. Only the author can update. Invalidates cache for all languages.",
+        tags=["Posts"],
+        request=PostCreateUpdateSerializer,
+        responses={
+            200: PostCreateUpdateSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Not the author"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    )
     def partial_update(
         self,
         request: DRFRequest,
@@ -239,7 +311,9 @@ class PostViewSet(ViewSet):
         if serializer.is_valid():
             serializer.save()
 
-            cache.delete("published_posts_list")
+            from django.conf import settings as django_settings
+            for lang_code in django_settings.SUPPORTED_LANGUAGES:
+                cache.delete(f"published_posts_list_{lang_code}")
             logger.info("Invalidated published posts cache after post update")
 
             logger.info(
@@ -260,6 +334,17 @@ class PostViewSet(ViewSet):
             status=HTTP_400_BAD_REQUEST,
         )
 
+    @extend_schema(
+        summary="Delete post",
+        description="Delete a post. Only the author can delete. Invalidates cache for all languages.",
+        tags=["Posts"],
+        responses={
+            204: OpenApiResponse(description="Post deleted"),
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Not the author"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    )
     def destroy(
         self,
         request: DRFRequest,
@@ -289,12 +374,30 @@ class PostViewSet(ViewSet):
         post_id = post.id
         post.delete()
 
+        from django.conf import settings as django_settings
+        for lang_code in django_settings.SUPPORTED_LANGUAGES:
+            cache.delete(f"published_posts_list_{lang_code}")
+        logger.info("Invalidated published posts cache after post deletion")
+
         logger.info(
             f"Post deleted successfully: post_id={post_id}, "
             f"slug={slug}, user_id={request.user.id}"
         )
         return DRFResponse(status=HTTP_204_NO_CONTENT)
 
+    @extend_schema(
+        summary="List or create comments for a post",
+        description="GET: list comments for a post, no auth required. POST: add comment, auth required. Comment event published to Redis on creation.",
+        tags=["Posts"],
+        request=CommentSerializer,
+        responses={
+            200: CommentSerializer(many=True),
+            201: CommentSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+            404: OpenApiResponse(description="Post not found"),
+        },
+    )
     @action(
         detail=True,
         methods=("GET", "POST"),
@@ -389,6 +492,12 @@ class CommentViewSet(ViewSet):
             if not permission.has_object_permission(request, self, obj):
                 raise PermissionDenied()
 
+    @extend_schema(
+        summary="List all comments",
+        description="Returns all comments across all posts. No authentication required.",
+        tags=["Comments"],
+        responses={200: CommentSerializer(many=True)},
+    )
     def list(
         self,
         request: DRFRequest,
@@ -415,6 +524,15 @@ class CommentViewSet(ViewSet):
             status=HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Get comment",
+        description="Get single comment by ID.",
+        tags=["Comments"],
+        responses={
+            200: CommentSerializer,
+            404: OpenApiResponse(description="Comment not found"),
+        },
+    )
     def retrieve(
         self,
         request: DRFRequest,
@@ -439,6 +557,19 @@ class CommentViewSet(ViewSet):
             status=HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Update comment",
+        description="Partially update a comment. Only the author can update.",
+        tags=["Comments"],
+        request=CommentSerializer,
+        responses={
+            200: CommentSerializer,
+            400: OpenApiResponse(description="Validation error"),
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Not the author"),
+            404: OpenApiResponse(description="Comment not found"),
+        },
+    )
     def partial_update(
         self,
         request: DRFRequest,
@@ -491,6 +622,17 @@ class CommentViewSet(ViewSet):
             status=HTTP_400_BAD_REQUEST,
         )
 
+    @extend_schema(
+        summary="Delete comment",
+        description="Delete a comment. Only the author can delete.",
+        tags=["Comments"],
+        responses={
+            204: OpenApiResponse(description="Comment deleted"),
+            401: OpenApiResponse(description="Authentication required"),
+            403: OpenApiResponse(description="Not the author"),
+            404: OpenApiResponse(description="Comment not found"),
+        },
+    )
     def destroy(
         self,
         request: DRFRequest,

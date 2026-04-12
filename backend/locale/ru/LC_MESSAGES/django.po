@@ -1,0 +1,38 @@
+# Russian translations
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Language updated successfully."
+msgstr "Язык успешно обновлён."
+
+msgid "Timezone updated successfully."
+msgstr "Часовой пояс успешно обновлён."
+
+msgid "Invalid language. Choose from: en, ru, kk"
+msgstr "Неверный язык. Выберите из: en, ru, kk"
+
+msgid "Invalid timezone. Use a valid IANA identifier e.g. Asia/Almaty"
+msgstr "Неверный часовой пояс. Используйте IANA идентификатор, например Asia/Almaty"
+
+msgid "Timezone is required."
+msgstr "Часовой пояс обязателен."
+
+msgid "Authentication required."
+msgstr "Требуется аутентификация."
+
+msgid "Post not found"
+msgstr "Пост не найден."
+
+msgid "Comment not found"
+msgstr "Комментарий не найден."
+
+msgid "preferred language"
+msgstr "предпочитаемый язык"
+
+msgid "timezone"
+msgstr "часовой пояс"
+
+msgid "user"
+msgstr "пользователь"

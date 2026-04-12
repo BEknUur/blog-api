@@ -1,6 +1,6 @@
 # Python modules
-from datetime import datetime
 import logging
+import pytz
 
 # Third-party modules
 from rest_framework.serializers import (
@@ -8,6 +8,7 @@ from rest_framework.serializers import (
     DateTimeField,
     SlugField,
     PrimaryKeyRelatedField,
+    SerializerMethodField,
 )
 
 # Project modules
@@ -38,7 +39,7 @@ class CategorySerializer(ModelSerializer):
     """
     Base Category Serializer
     """
-
+    name = SerializerMethodField()
     class Meta:
         model = Category
         fields = [
@@ -46,6 +47,12 @@ class CategorySerializer(ModelSerializer):
             "name",
             "slug",
         ]
+    def get_name(self,obj):
+        request =self.context.get("request")
+        if request:
+            lang =getattr(request,"LANGUAGE_CODE","en")
+            return obj.safe_translation_getter("name", language_code=lang, any_language=True)
+        return obj.safe_translation_getter("name", any_language=True)
 
 
 class TagSerializer(ModelSerializer):
@@ -71,8 +78,7 @@ class PostListSerializer(ModelSerializer):
     category: CategorySerializer = CategorySerializer(read_only=True)
     tags: TagSerializer = TagSerializer(read_only=True, many=True)
 
-    created_at: datetime = DateTimeField(read_only=True, format="%H:%M %d-%m-%Y")
-    updated_at: datetime = DateTimeField(read_only=True, format="%H:%M %d-%m-%Y")
+    created_at = SerializerMethodField()
 
     class Meta:
         model = Post
@@ -86,6 +92,46 @@ class PostListSerializer(ModelSerializer):
             "status",
             "created_at",
         ]
+    def get_created_at(self,obj):
+        request = self.context.get("request")
+        return self._format_date(obj.created_at,request)
+    
+    def _format_date(self, dt, request):
+        if dt is None:
+            return None
+
+        
+        if not request or not request.user.is_authenticated:
+            return dt.strftime("%H:%M %d-%m-%Y UTC")
+
+        user_tz_name = getattr(request.user, "timezone", "UTC")
+        try:
+            user_tz = pytz.timezone(user_tz_name)
+        except pytz.exceptions.UnknownTimeZoneError:
+            user_tz = pytz.utc
+
+        local_dt = dt.astimezone(user_tz)
+
+        lang = getattr(request, "LANGUAGE_CODE", "en")
+
+        if lang == "ru":
+            months_ru = [
+                "января", "февраля", "марта", "апреля", "мая", "июня",
+                "июля", "августа", "сентября", "октября", "ноября", "декабря"
+            ]
+            month = months_ru[local_dt.month - 1]
+            return f"{local_dt.strftime('%H:%M')} {local_dt.day} {month} {local_dt.year}"
+
+        elif lang == "kk":
+            months_kk = [
+                "қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым",
+                "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"
+            ]
+            month = months_kk[local_dt.month - 1]
+            return f"{local_dt.strftime('%H:%M')} {local_dt.day} {month} {local_dt.year}"
+
+        return local_dt.strftime("%H:%M %d-%m-%Y")
+
 
     def to_representation(self, instance):
         logger.debug(f"Serializing post list item: post_id={instance.id}, slug={instance.slug}")
@@ -101,14 +147,8 @@ class PostDetailSerializer(ModelSerializer):
     category: CategorySerializer = CategorySerializer(read_only=True)
     tags: TagSerializer = TagSerializer(read_only=True, many=True)
 
-    created_at: datetime = DateTimeField(
-        read_only=True,
-        format="%H:%M %d-%m-%Y",
-    )
-    updated_at: datetime = DateTimeField(
-        read_only=True,
-        format="%H:%M %d-%m-%Y",
-    )
+    created_at = SerializerMethodField()
+    updated_at = SerializerMethodField()
 
     class Meta:
         model = Post
@@ -124,6 +164,13 @@ class PostDetailSerializer(ModelSerializer):
             "created_at",
             "updated_at",
         ]
+    def get_created_at(self, obj):
+        request = self.context.get("request")
+        return PostListSerializer._format_date(self, obj.created_at, request)
+
+    def get_updated_at(self, obj):
+        request = self.context.get("request")
+        return PostListSerializer._format_date(self, obj.updated_at, request)
 
     def to_representation(self, instance):
         logger.debug(f"Serializing post detail: post_id={instance.id}, slug={instance.slug}")

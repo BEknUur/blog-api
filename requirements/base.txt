@@ -15,3 +15,8 @@ djangorestframework
 djangorestframework-simplejwt
 
 redis
+drf-spectacular
+httpx
+adrf
+django-parler
+pytz

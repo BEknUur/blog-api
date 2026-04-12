@@ -1,0 +1,38 @@
+# English translations
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Language updated successfully."
+msgstr "Language updated successfully."
+
+msgid "Timezone updated successfully."
+msgstr "Timezone updated successfully."
+
+msgid "Invalid language. Choose from: en, ru, kk"
+msgstr "Invalid language. Choose from: en, ru, kk"
+
+msgid "Invalid timezone. Use a valid IANA identifier e.g. Asia/Almaty"
+msgstr "Invalid timezone. Use a valid IANA identifier e.g. Asia/Almaty"
+
+msgid "Timezone is required."
+msgstr "Timezone is required."
+
+msgid "Authentication required."
+msgstr "Authentication required."
+
+msgid "Post not found"
+msgstr "Post not found."
+
+msgid "Comment not found"
+msgstr "Comment not found."
+
+msgid "preferred language"
+msgstr "preferred language"
+
+msgid "timezone"
+msgstr "timezone"
+
+msgid "user"
+msgstr "user"
