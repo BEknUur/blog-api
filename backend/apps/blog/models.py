@@ -66,6 +66,7 @@ class Post(AbstractTimeStampModel):
     class Status(TextChoices):
         DRAFT = "draft"
         PUBLISHED = "published"
+        SCHEDULED ="scheduled"
 
     
     author = ForeignKey(
@@ -100,6 +101,10 @@ class Post(AbstractTimeStampModel):
         max_length=20,
         choices=Status.choices,
         default=Status.DRAFT,
+    )
+    publish_at = DateTimeField(
+        null =True,
+        blank=True
     )
 
     def __str__(self):

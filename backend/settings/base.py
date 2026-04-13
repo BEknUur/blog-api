@@ -1,7 +1,8 @@
 # Project modules
 import os
-from settings.conf import * 
-from datetime import timedelta 
+from settings.conf import *
+from datetime import timedelta
+
 
 
 """
@@ -13,7 +14,7 @@ LOGS_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOGS_DIR, exist_ok=True)
 ROOT_URLCONF = "settings.urls"
 WSGI_APPLICATION = "settings.wsgi.application"
-ASGI_APPLICTION = "settings.asgi.application"
+ASGI_APPLICATION = "settings.asgi.application"
 
 """
 Apps
@@ -31,6 +32,7 @@ DJANGO_AND_THIRD_PARTY_APPS = [
     "parler",
     "adrf",
     "drf_spectacular",
+    "channels"
 ]
 
 PROJECT_APPS = [
@@ -38,6 +40,7 @@ PROJECT_APPS = [
     "apps.users",
     "apps.blog",
     "apps.core",
+    "apps.notifications"
 ]
 
 INSTALLED_APPS = DJANGO_AND_THIRD_PARTY_APPS + PROJECT_APPS
@@ -203,6 +206,20 @@ PARLER_LANGUAGES = {
     },
 }
 
+"""
+channel layers
+"""
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+        },
+    },
+}
+
+
+
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
@@ -228,9 +245,27 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+
+"""
+
+Celery Configuration as 
+"""
+
+_celery_redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"  # noqa: F405
+CELERY_BROKER_URL = _celery_redis_url
+CELERY_RESULT_BACKEND = _celery_redis_url
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Blog API",
     "DESCRIPTION": "Blog API HW2 — Multilingual blog with async stats",
     "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+
+
