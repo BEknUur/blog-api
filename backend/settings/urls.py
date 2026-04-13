@@ -5,8 +5,10 @@ from django.urls import path, include
 # Third-party modules
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+
 # Project modules
 from apps.blog.views_async import StatsView
+from apps.blog.views_async import post_stream
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -17,4 +19,7 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("api/posts/stream/",post_stream,name="post-stream"),
+    path("api/", include("apps.notifications.urls")),
+
 ]

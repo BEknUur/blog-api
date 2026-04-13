@@ -20,10 +20,14 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+import json
 
 # Django modules
 from django.db.models import Q
 from django.core.cache import cache
+import redis as sync_redis
+from django.conf import settings
+
 
 # Project modules
 from apps.blog.models import Post, Comment
@@ -203,6 +207,17 @@ class PostViewSet(ViewSet):  # noqa
         if serializer.is_valid():
             post = serializer.save(author=request.user)
 
+            if post.status == Post.Status.PUBLISHED:
+                r = sync_redis.from_url(settings.REDIS_URL)
+                r.publish("post_published", json.dumps({
+                    "post_id": post.id,
+                    "title": post.title,
+                    "slug": post.slug,
+                    "author": {"id": post.author.id, "email": post.author.email},
+                    "published_at": post.updated_at.isoformat(),
+                }))
+                r.close()
+
             from django.conf import settings as django_settings
             for lang_code in django_settings.SUPPORTED_LANGUAGES:
                 cache.delete(f"published_posts_list_{lang_code}")
@@ -312,6 +327,16 @@ class PostViewSet(ViewSet):  # noqa
 
         if serializer.is_valid():
             serializer.save()
+            if post.status == Post.Status.PUBLISHED:
+                r = sync_redis.from_url(settings.REDIS_URL)
+                r.publish("post_published", json.dumps({
+                    "post_id": post.id,
+                    "title": post.title,
+                    "slug": post.slug,
+                    "author": {"id": post.author.id, "email": post.author.email},
+                    "published_at": post.updated_at.isoformat(),
+                }))
+                r.close()
 
             from django.conf import settings as django_settings
             for lang_code in django_settings.SUPPORTED_LANGUAGES:
@@ -626,6 +651,7 @@ class CommentViewSet(ViewSet):
 
         if serializer.is_valid():
             serializer.save()
+
             logger.info(
                 f"Comment updated successfully: comment_id={comment.id}, "
                 f"user_id={request.user.id}"

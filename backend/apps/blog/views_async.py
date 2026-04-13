@@ -9,11 +9,32 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response as DRFResponse
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+import json
+from django.http import StreamingHttpResponse
+import redis.asyncio as aioredis
 
 # Project modules
 from apps.blog.models import Post, Comment
+from django.conf import settings
+
 
 logger = logging.getLogger(__name__)
+REDIS_CHANNEL = "post_published"
+
+async def post_stream(request):
+    async def event_generator():
+        r = aioredis.from_url(settings.REDIS_URL)
+        pubsub = r.pubsub()
+        await pubsub.subscribe(REDIS_CHANNEL)
+        try:
+            async for message in pubsub.listen():
+                if message["type"] =="message":
+                    yield f"data: {message['data'].decode()}\n\n"
+        finally:
+            await pubsub.unsubscribe(REDIS_CHANNEL)
+            await r.aclose()
+    
+    return StreamingHttpResponse(event_generator(), content_type="text/event-stream")
 
 
 class StatsView(APIView):
