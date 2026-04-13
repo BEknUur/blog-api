@@ -2,6 +2,7 @@
 import os
 from settings.conf import * 
 from datetime import timedelta 
+from env.local import REDIS_HOST,REDIS_PORT
 
 
 """
@@ -13,7 +14,7 @@ LOGS_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOGS_DIR, exist_ok=True)
 ROOT_URLCONF = "settings.urls"
 WSGI_APPLICATION = "settings.wsgi.application"
-ASGI_APPLICTION = "settings.asgi.application"
+ASGI_APPLICATION = "settings.asgi.application"
 
 """
 Apps
@@ -31,6 +32,7 @@ DJANGO_AND_THIRD_PARTY_APPS = [
     "parler",
     "adrf",
     "drf_spectacular",
+    "channels"
 ]
 
 PROJECT_APPS = [
@@ -38,6 +40,7 @@ PROJECT_APPS = [
     "apps.users",
     "apps.blog",
     "apps.core",
+    "apps.notifications"
 ]
 
 INSTALLED_APPS = DJANGO_AND_THIRD_PARTY_APPS + PROJECT_APPS
@@ -203,6 +206,20 @@ PARLER_LANGUAGES = {
     },
 }
 
+"""
+channel layers
+"""
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
+        },
+    },
+}
+
+
+
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
@@ -234,3 +251,4 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+

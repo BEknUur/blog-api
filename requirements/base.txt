@@ -20,3 +20,6 @@ httpx
 adrf
 django-parler
 pytz
+channels 
+channels-redis
+

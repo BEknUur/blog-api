@@ -18,6 +18,8 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 # Django modules
 from django.db.models import Q
@@ -456,6 +458,26 @@ class PostViewSet(ViewSet):  # noqa
 
             if serializer.is_valid():
                 comment = serializer.save(author=request.user, post=post)
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"post_{slug}_comments",
+                    {
+                        "type": "new_comment",
+                        "data": {
+                            "comment_id": comment.id,
+                            "author": {
+                                "id": comment.author.id,
+                                "email": comment.author.email,
+                            },
+                            "body": comment.body,
+                            "created_at": comment.created_at.isoformat(),
+                        }
+
+                    }
+                )
+
+                
                 logger.info(
                     f"Comment created successfully: comment_id={comment.id}, "
                     f"post_id={post.id}, user_id={request.user.id}"
