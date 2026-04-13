@@ -2,6 +2,10 @@
 from typing import Any
 import logging
 
+# Project tasks
+from apps.blog.tasks import invalidate_posts_cache
+from apps.notifications.tasks import process_new_comment
+
 # Third-party modules
 from rest_framework.viewsets import ViewSet
 from rest_framework.permissions import AllowAny
@@ -218,9 +222,7 @@ class PostViewSet(ViewSet):  # noqa
                 }))
                 r.close()
 
-            from django.conf import settings as django_settings
-            for lang_code in django_settings.SUPPORTED_LANGUAGES:
-                cache.delete(f"published_posts_list_{lang_code}")
+            invalidate_posts_cache.delay()
             logger.info("Invalidated published posts cache after post creation")
 
             logger.info(
@@ -338,9 +340,7 @@ class PostViewSet(ViewSet):  # noqa
                 }))
                 r.close()
 
-            from django.conf import settings as django_settings
-            for lang_code in django_settings.SUPPORTED_LANGUAGES:
-                cache.delete(f"published_posts_list_{lang_code}")
+            invalidate_posts_cache.delay()
             logger.info("Invalidated published posts cache after post update")
 
             logger.info(
@@ -401,9 +401,7 @@ class PostViewSet(ViewSet):  # noqa
         post_id = post.id
         post.delete()
 
-        from django.conf import settings as django_settings
-        for lang_code in django_settings.SUPPORTED_LANGUAGES:
-            cache.delete(f"published_posts_list_{lang_code}")
+        invalidate_posts_cache.delay()
         logger.info("Invalidated published posts cache after post deletion")
 
         logger.info(
@@ -483,24 +481,7 @@ class PostViewSet(ViewSet):  # noqa
 
             if serializer.is_valid():
                 comment = serializer.save(author=request.user, post=post)
-
-                channel_layer = get_channel_layer()
-                async_to_sync(channel_layer.group_send)(
-                    f"post_{slug}_comments",
-                    {
-                        "type": "new_comment",
-                        "data": {
-                            "comment_id": comment.id,
-                            "author": {
-                                "id": comment.author.id,
-                                "email": comment.author.email,
-                            },
-                            "body": comment.body,
-                            "created_at": comment.created_at.isoformat(),
-                        }
-
-                    }
-                )
+                process_new_comment.delay(comment.id)
 
                 
                 logger.info(

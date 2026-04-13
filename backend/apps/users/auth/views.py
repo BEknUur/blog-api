@@ -3,6 +3,9 @@ from typing import Any
 import logging
 import pytz
 
+# Project tasks
+from apps.users.tasks import send_welcome_email
+
 # Third-party modules
 from rest_framework.viewsets import ViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -132,6 +135,7 @@ class AuthViewSet(ViewSet):
 
         if serializer.is_valid():
             user = serializer.save()
+            send_welcome_email.delay(user.id)
 
             user_lang = request.data.get("language", "en")
             if user_lang not in ["en", "ru", "kk"]:

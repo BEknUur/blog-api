@@ -1,8 +1,8 @@
 # Project modules
 import os
-from settings.conf import * 
-from datetime import timedelta 
-from env.local import REDIS_HOST,REDIS_PORT
+from settings.conf import *
+from datetime import timedelta
+
 
 
 """
@@ -245,10 +245,27 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+
+"""
+
+Celery Configuration as 
+"""
+
+_celery_redis_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"  # noqa: F405
+CELERY_BROKER_URL = _celery_redis_url
+CELERY_RESULT_BACKEND = _celery_redis_url
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Blog API",
     "DESCRIPTION": "Blog API HW2 — Multilingual blog with async stats",
     "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+
 
