@@ -7,7 +7,10 @@ ENV_ID_POSSIBLE_OPTIONS = ["local", "prod"]
 
 BLOG_ENV_ID = config("BLOG_ENV_ID", cast=str)
 
-SECRET_KEY = 'django-insecure-(^_^gfp3**yddhcs%6q!gm@%3#6mp3nwmxr(15df$ypky$ckgv'
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default="django-insecure-(^_^gfp3**yddhcs%6q!gm@%3#6mp3nwmxr(15df$ypky$ckgv",
+)
 
 REDIS_HOST = config("BLOG_REDIS_HOST", default="localhost")
 REDIS_PORT = config("BLOG_REDIS_PORT", default=6379, cast=int)

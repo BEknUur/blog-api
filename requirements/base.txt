@@ -25,4 +25,5 @@ channels-redis
 
 celery
 flower
+daphne
 

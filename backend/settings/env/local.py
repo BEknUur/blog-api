@@ -8,20 +8,23 @@ ALLOWED_HOSTS=[ ]
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'db.sqlite3',
+        'NAME': os.environ.get("BLOG_SQLITE_PATH", os.path.join(BASE_DIR, "db.sqlite3")),
     },
 }
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 0
+REDIS_HOST = os.environ.get("BLOG_REDIS_HOST", REDIS_HOST)
+REDIS_PORT = int(os.environ.get("BLOG_REDIS_PORT", REDIS_PORT))
+REDIS_DB = int(os.environ.get("BLOG_REDIS_DB", REDIS_DB))
 
-REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+REDIS_URL = os.environ.get(
+    "BLOG_REDIS_URL",
+    f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+)
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },

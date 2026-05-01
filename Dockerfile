@@ -15,8 +15,11 @@ RUN pip install --no-cache-dir -r requirements/base.txt
 
 COPY . . 
 
-RUN adduser --disabled-password --gecos "" appuser
-
+RUN adduser --disabled-password --gecos "" appuser \
+    && mkdir -p /app/backend/data /app/backend/static /app/backend/media \
+    && chown -R appuser:appuser /app
+     
+    
 USER appuser
 
 
@@ -26,4 +29,3 @@ WORKDIR /app/backend
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "settings.asgi:application"]
-
