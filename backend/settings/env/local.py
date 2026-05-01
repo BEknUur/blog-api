@@ -8,7 +8,7 @@ ALLOWED_HOSTS=[ ]
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'db.sqlite3',
+        'NAME': os.environ.get("BLOG_SQLITE_PATH", os.path.join(BASE_DIR, "db.sqlite3")),
     },
 }
 
